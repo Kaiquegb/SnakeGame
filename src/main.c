@@ -9,7 +9,7 @@ int incX = 1, incY = 1;
 int x = 3, y = 2;
 
 
-void printHello(int nextX, int nextY)
+void NomeJogo(int nextX, int nextY)
 {
     screenGotoxy(x, y);
     x = nextX;
@@ -25,7 +25,7 @@ int main()
     screenInit(1);
     keyboardInit();
 
-    printHello(x, y);
+    NomeJogo(x, y);
     screenUpdate();
 
     while (ch != 10) //enter

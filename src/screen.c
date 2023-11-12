@@ -1,7 +1,10 @@
 #include "screen.h"
 
+
 void screenDrawBorders()
 {
+    screenSetColor(BLACK, GREEN);
+
     char hbc = BOX_HLINE;
     char vbc = BOX_VLINE;
 
@@ -51,7 +54,7 @@ void screenInit(int drawBorders)
 
 void screenDestroy()
 {
-    printf("%s[0;39;49m", ESC); // Reset colors
+    printf("%s[0;39;49m", ESC); 
     screenSetNormal();
     screenClear();
     screenHomeCursor();

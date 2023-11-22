@@ -1,6 +1,4 @@
 # SnakeGame
-
-##Jogo da Cobra em C
 Este é um simples jogo da cobra criado em C. O jogador controla uma cobra que deve se mover pelo campo, comer comida e evitar colisões consigo mesma ou com as bordas do campo.
 
 # Como Jogar

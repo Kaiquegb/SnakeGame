@@ -6,7 +6,7 @@ Este é um simples jogo da cobra criado em C. O jogador controla uma cobra que d
 Certifique-se de ter um compilador C instalado (como GCC).
 Compile o código-fonte com o seguinte comando:
 
-gcc main.c screen.c keyboard.c timer.c -o snake_game
+gcc  ./src/main3.c ./src/screen.c ./src/keyboard.c ./src/timer.c -o snake_game
 
 Execução:
 Após compilar, execute o jogo com:

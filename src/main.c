@@ -57,7 +57,7 @@ void limpaedesenha() {
     }
   }
 
-  // Desenha a cobra na matriz campo
+  // Desenha a cobra na matriz espaco
   for (int i = 0; i < cobra.tamanho; ++i) {
     int x = cobra.fragmentos[i].x;
     int y = cobra.fragmentos[i].y;
@@ -68,7 +68,7 @@ void limpaedesenha() {
     }
   }
 
-  // Desenha a comida na matriz campo
+  // Desenha a comida na matriz espaco
   espaco[comida.y][comida.x] = 'O';
 }
 

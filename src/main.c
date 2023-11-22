@@ -1,137 +1,177 @@
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "screen.h"
 #include "keyboard.h"
+#include "screen.h"
 #include "timer.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#define WIDTH 50
-#define HEIGHT 20
+#define MAX_SEGMENTS 100
+#define SCREEN_WIDTH 80
+#define SCREEN_HEIGHT 24
 
-// Struct para representar a cobra
 typedef struct {
-    int x, y;
-} Ponto;
+  int x, y;
+} fragmento;
 
-struct Snake {
-    Ponto *corpo;
-    int tamanho;
-    int direcaoX, direcaoY;
-};
+typedef struct {
+  fragmento *fragmentos;
+  int tamanho;
+} Cobra;
 
-// Struct global para representar a cobra
-struct Snake cobra;
+Cobra cobra;
 
-Ponto comida;
-int comidaEaten = 1;
+typedef struct {
+  int x, y;
+} Comida;
 
-void screenPutChar(char ch) {
-    printf("%c", ch);
+Comida comida;
+
+void screenPutChar(char ch) { printf("%c", ch); }
+
+char espaco[SCREEN_HEIGHT][SCREEN_WIDTH];
+
+void bordas() {
+  // Desenha bordas superiores e inferiores
+  for (int i = 0; i < SCREEN_WIDTH; ++i) {
+    screenGotoxy(i, 0);
+    screenPutChar('_');
+    screenGotoxy(i, SCREEN_HEIGHT - 1);
+    screenPutChar('_');
+  }
+
+  // Desenha bordas laterais
+  for (int i = 0; i < SCREEN_HEIGHT; ++i) {
+    screenGotoxy(0, i);
+    screenPutChar('|');
+    screenGotoxy(SCREEN_WIDTH - 1, i);
+    screenPutChar('|');
+  }
 }
 
-void drawSnake() {
-    // Desenha a cabeça da cobra
-    screenGotoxy(cobra.corpo[0].x, cobra.corpo[0].y);
-    screenPutChar('*');
-}
+void limpaedesenha() {
+  for (int i = 0; i < SCREEN_HEIGHT; ++i) {
+    for (int j = 0; j < SCREEN_WIDTH; ++j) {
+      if (espaco[i][j] == '@' || espaco[i][j] == '*') {
+        espaco[i][j] = ' '; // Limpa a posição anterior da cobra
+      }
+    }
+  }
 
-void drawFood() {
-    screenGotoxy(comida.x, comida.y);
-    screenPutChar('#');
-}
-
-void updateSnake() {
-    // Verifica se a cobra "comeu" a comida
-    if (cobra.corpo[0].x == comida.x && cobra.corpo[0].y == comida.y) {
-        // Aumenta o tamanho da cobra
-        cobra.tamanho++;
-        cobra.corpo = realloc(cobra.corpo, cobra.tamanho * sizeof(Ponto));
-        cobra.corpo[cobra.tamanho - 1] = comida;
-        comidaEaten = 1;
+  // Desenha a cobra na matriz campo
+  for (int i = 0; i < cobra.tamanho; ++i) {
+    int x = cobra.fragmentos[i].x;
+    int y = cobra.fragmentos[i].y;
+    if (i == 0) {
+      espaco[y][x] = '@'; // Cabeça da cobra
     } else {
-        // Move o corpo da cobra
-        for (int i = cobra.tamanho - 1; i > 0; i--) {
-            cobra.corpo[i] = cobra.corpo[i - 1];
-        }
+      espaco[y][x] = '*'; // Corpo da cobra
     }
+  }
 
-    // Atualiza a posição da cabeça da cobra
-    cobra.corpo[0].x += cobra.direcaoX;
-    cobra.corpo[0].y += cobra.direcaoY;
-
-    // Verifica colisões com as paredes e ajusta a posição
-    if (cobra.corpo[0].x >= WIDTH - 1) {
-        cobra.corpo[0].x = 1;
-    } else if (cobra.corpo[0].x <= 0) {
-        cobra.corpo[0].x = WIDTH - 2;
-    } else if (cobra.corpo[0].y >= HEIGHT - 1) {
-        cobra.corpo[0].y = 1;
-    } else if (cobra.corpo[0].y <= 0) {
-        cobra.corpo[0].y = HEIGHT - 2;
-    }
+  // Desenha a comida na matriz campo
+  espaco[comida.y][comida.x] = 'O';
 }
 
-void placeFood() {
-    if (comidaEaten) {
-        do {
-            comida.x = rand() % (WIDTH - 2) + 1;  // Evita gerar comida nas bordas
-            comida.y = rand() % (HEIGHT - 2) + 1;
-        } while (comida.x == cobra.corpo[0].x && comida.y == cobra.corpo[0].y);
+void moverCobra(int incX, int incY) {
+  for (int i = cobra.tamanho - 1; i > 0; --i) {
+    cobra.fragmentos[i].x = cobra.fragmentos[i - 1].x;
+    cobra.fragmentos[i].y = cobra.fragmentos[i - 1].y;
+  }
 
-        comidaEaten = 0;
+  cobra.fragmentos[0].x += incX;
+  cobra.fragmentos[0].y += incY;
+
+  for (int i = 1; i < cobra.tamanho; ++i) {
+    if (cobra.fragmentos[0].x == cobra.fragmentos[i].x &&
+        cobra.fragmentos[0].y == cobra.fragmentos[i].y) {
+      // Game over - colidiu consigo mesma
+      screenGotoxy(SCREEN_WIDTH / 2 - 5, SCREEN_HEIGHT / 2);
+      printf("GAME OVER!");
+      screenUpdate();
+      exit(0);
     }
-    drawFood();
+  }
+}
+
+void geracomida() {
+  comida.x = 1 + rand() % (SCREEN_WIDTH - 2);
+  comida.y = 1 + rand() % (SCREEN_HEIGHT - 2);
+}
+
+int score = 0;
+void alimentaCobra() {
+  if (cobra.fragmentos[0].x == comida.x && cobra.fragmentos[0].y == comida.y) {
+    cobra.tamanho++;
+    score = score + 10;
+    geracomida();
+  }
 }
 
 int main() {
-    screenInit(1);
-    keyboardInit();
 
-    screenDrawBorders(); // Desenha a borda
-    screenUpdate();
+  static int ch = 0;
 
-    // Inicializa a cobra
-    cobra.corpo = malloc(sizeof(Ponto));
-    cobra.corpo[0].x = WIDTH / 2;
-    cobra.corpo[0].y = HEIGHT / 2;
-    cobra.tamanho = 1;
-    cobra.direcaoX = 1;
-    cobra.direcaoY = 0;
+  cobra.fragmentos = (fragmento *)malloc(MAX_SEGMENTS * sizeof(fragmento));
+  cobra.tamanho = 2;                         // Inicializa com cabeça e corpo
+  cobra.fragmentos[0].x = SCREEN_WIDTH / 2;  // Meio horizontal da tela
+  cobra.fragmentos[0].y = SCREEN_HEIGHT / 2; // Meio vertical da tela
+  cobra.fragmentos[1].x = SCREEN_WIDTH / 2 - 1; // Corpo
+  cobra.fragmentos[1].y = SCREEN_HEIGHT / 2;    // Corpo
 
-    while (1) {
-        if (keyhit()) {
-            char ch = readch();
-            if (ch == 'w' && cobra.direcaoY != 1) {
-                cobra.direcaoX = 0;
-                cobra.direcaoY = -1;
-            } else if (ch == 's' && cobra.direcaoY != -1) {
-                cobra.direcaoX = 0;
-                cobra.direcaoY = 1;
-            } else if (ch == 'a' && cobra.direcaoX != 1) {
-                cobra.direcaoX = -1;
-                cobra.direcaoY = 0;
-            } else if (ch == 'd' && cobra.direcaoX != -1) {
-                cobra.direcaoX = 1;
-                cobra.direcaoY = 0;
-            }
-           drawSnake();
-        }
+  screenInit(0);
+  bordas();
+  geracomida();
+  keyboardInit();
+  screenUpdate();
 
-        screenClear();
-        screenDrawBorders(); // Desenha a borda
-        placeFood();
-        screenUpdate();
-
-        updateSnake();
-
-        // Ajuste de velocidade do jogo
-        timerInit(100); // Valor em milissegundos
-        while (!timerTimeOver()) {}
+  while (ch != 'P') {
+    if (keyhit()) {
+      ch = readch();
     }
 
-    keyboardDestroy();
-    screenDestroy();
-    timerDestroy();
+    if (ch == 'w' || ch == 'W') {
+      moverCobra(0, -1);
+    } else if (ch == 's' || ch == 'S') {
+      moverCobra(0, 1);
+    } else if (ch == 'a' || ch == 'A') {
+      moverCobra(-1, 0);
+    } else if (ch == 'd' || ch == 'D') {
+      moverCobra(1, 0);
+    }
 
-    return 0;
+    alimentaCobra();
+    screenGotoxy(2, 2); // Posição para exibir o score
+    printf("Score: %d", score);
+    limpaedesenha();
+
+    if (cobra.fragmentos[0].x >= SCREEN_WIDTH || cobra.fragmentos[0].x < 0 ||
+        cobra.fragmentos[0].y >= SCREEN_HEIGHT || cobra.fragmentos[0].y < 0) {
+      // Game over - colidiu com as paredes
+      screenGotoxy(SCREEN_WIDTH / 2 - 5, SCREEN_HEIGHT / 2);
+      printf("GAME OVER!");
+      screenUpdate();
+      exit(0);
+    }
+
+    // Desenha o campo na tela
+    for (int i = 0; i < SCREEN_HEIGHT; ++i) {
+      for (int j = 0; j < SCREEN_WIDTH; ++j) {
+        screenGotoxy(j, i);
+        screenPutChar(espaco[i][j]);
+      }
+    }
+    screenUpdate();
+
+    timerInit(10);
+
+    while (!timerTimeOver()) {
+      // Espera até que o tempo seja atingido
+    }
+  }
+
+  keyboardDestroy();
+  screenDestroy();
+  timerDestroy();
+
+  return 0;
 }
